@@ -13,7 +13,7 @@ from nonebot_plugin_guild_patch import GuildMessageEvent
 from .data_source import chatBot, txBot, bingBot, plugin_config
 from typing import Union
 
-ai_chat = on_regex(pattern=".*?", priority=20, block=False, rule=to_me())
+ai_chat = on_regex(pattern=".*?", priority=50, block=False, rule=to_me())
 chat_reset = on_command("reset", priority=10, aliases={"重置", "重置对话", }, block=True, rule=to_me())
 
 Bot = QQBot
