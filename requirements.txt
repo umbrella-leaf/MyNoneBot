@@ -1,4 +1,4 @@
-EdgeGPT==0.11.7
+EdgeGPT==0.10.16
 httpx==0.24.1
 nonebot==1.9.1
 nonebot_plugin_guild_patch==0.2.3
