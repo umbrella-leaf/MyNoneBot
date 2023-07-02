@@ -1,1 +1,2 @@
-from .Translator import TencentTranslator, BaiduTranslator
+from .TxTranslator import TencentTranslator
+from .BDTranslator import BaiduTranslator
