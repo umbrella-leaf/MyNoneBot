@@ -62,7 +62,15 @@ class NewBingBot(Bot):
             chatbot = await self.get_chat_bot(convo_id=convo_id)
             await self.reset_chat(convo_id=convo_id, force=False)
             res = await chatbot.ask(prompt=prompt, conversation_style=ConversationStyle.creative, simplify_response=True)
-            reply = res["adaptive_text"]
+            message = next(
+                (
+                    s
+                    for s in reversed(res["item"]["messages"])
+                    if "messageType" not in s
+                ),
+                res["item"]["messages"][-1],
+            )
+            reply = message["adaptiveCards"][0]["body"][0]["text"]
             await self.reset_expire(convo_id=convo_id)
             return reply
         except Exception as err:
