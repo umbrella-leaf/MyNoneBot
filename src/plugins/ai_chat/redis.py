@@ -13,6 +13,7 @@ class Redis:
             self.clear_prefix(plugin_config.chatgpt_redis_key_prefix)
             self.clear_prefix(plugin_config.tencent_bot_redis_key_prefix)
             self.clear_prefix(plugin_config.newbing_bot_redis_key_prefix)
+            self.clear_prefix(plugin_config.ernie_bot_redis_key_prefix)
         except redis.exceptions.RedisError as err:
             print(f'RedisError: {err}')
 
