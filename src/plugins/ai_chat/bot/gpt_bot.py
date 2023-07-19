@@ -1,6 +1,5 @@
-from typing import Optional
 from revChatGPT.V3 import Chatbot
-from nonebot.adapters.onebot.v11 import Bot, Event, GroupMessageEvent, MessageEvent
+from nonebot.adapters.onebot.v11 import GroupMessageEvent, MessageEvent
 from .base_bot import *
 import traceback
 
