@@ -26,6 +26,13 @@ class Config(BaseModel, extra=Extra.ignore):
     newbing_bot_session_expire: str
     newbing_bot_redis_key_prefix: str
 
+    ernie_bot_nickname: str
+    ernie_bot_api_key: str
+    ernie_model: str
+    ernie_bot_secret_key: str
+    ernie_bot_session_expire: int
+    ernie_bot_redis_key_prefix: str
+
     expr_dont_understand: list
 
 
