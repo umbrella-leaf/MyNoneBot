@@ -31,5 +31,13 @@ bingBot = NewBingBot(
     key_prefix=plugin_config.newbing_bot_redis_key_prefix,
     session_expire=plugin_config.newbing_bot_session_expire
 )
+ernieBot = ErnieBot(
+    api_key=plugin_config.ernie_bot_api_key,
+    secret_key=plugin_config.ernie_bot_secret_key,
+    model=plugin_config.ernie_model,
+    redis_cli=redis_cli,
+    key_prefix=plugin_config.ernie_bot_redis_key_prefix,
+    session_expire=plugin_config.ernie_bot_session_expire
+)
 
 
