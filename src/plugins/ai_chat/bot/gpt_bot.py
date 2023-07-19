@@ -53,17 +53,6 @@ class ChatGPTBot(Bot):
 
     def get_convo_id_from_wx_oa(self, user_id: str):
         return f"{self.key_prefix}_wx_oa_{user_id}"
-    
-    async def draw(self, desc: str) -> Optional[str]:
-        if not desc:
-            return None
-        try:
-            chatbot = self.get_chat_bot()
-            return chatbot.draw(prompt=desc)
-        except Exception as err:
-            print(err)
-            print(traceback.format_exc())
-            return None
 
     def get_chat_bot(self) -> Chatbot:
         return self.__chatbot
