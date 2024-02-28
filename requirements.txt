@@ -61,5 +61,6 @@ wcwidth==0.2.6
 websockets==10.4
 yarg==0.1.9
 yarl==1.8.2
-PyExecJs==1.5.1
+sqlalchemy==2.0.13
+pymysql==1.1.0
 
