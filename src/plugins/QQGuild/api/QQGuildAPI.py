@@ -1,6 +1,7 @@
 from nonebot.adapters import Bot
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple
 from random import randint
+import re
 
 
 class QQGuildRoleInfo:
@@ -47,7 +48,11 @@ class QQGuildCreateRoleInfo:
 
 class QQGuildAPI:
     RecognizeChannelName = '身份🆔认证'
+    CheaterReportChannelID = '1473004'
     MaximumRoleNum = 37
+    qqno_pattern = re.compile(r'\[CQ:at,qq=(.*?)]')
+    url_pattern = re.compile(r'\[CQ:(?:image|video).*?url=(.*?)]')
+    message_pattern = re.compile(r'^(?:\[CQ:at.*?])*\s*(.*?)(?:\[CQ:(?:image|video).*?])*$')
 
     @staticmethod
     async def GetGuildChannelList(guild_id: int, bot: Bot):
@@ -109,16 +114,31 @@ class QQGuildAPI:
     
     @staticmethod
     async def GetGuildMemberProfile(guild_id: int, bot: Bot, user_id: int):
-        roles = (await bot.call_api("get_guild_member_profile", guild_id=guild_id, user_id=user_id))['roles']
-        return roles
+        profile = await bot.call_api("get_guild_member_profile", guild_id=guild_id, user_id=user_id)
+        return profile
     
     @staticmethod
     async def MemberInRole(guild_id: int, bot: Bot, user_id: int, role_id: int) -> bool:
-        roles = await QQGuildAPI.GetGuildMemberProfile(guild_id, bot, user_id)
+        roles = (await QQGuildAPI.GetGuildMemberProfile(guild_id, bot, user_id))['roles']
         for role in roles:
             if int(role['role_id']) == role_id:
                 return True
         return False
+
+    @staticmethod
+    async def GetMessageInfo(guild_id: int, bot: Bot, message: str) -> Tuple[str, str]:
+        # 正则取信息，重新拼接
+        at_user_ids = QQGuildAPI.qqno_pattern.findall(message)
+        appendix_urls = QQGuildAPI.url_pattern.findall(message)
+        message = QQGuildAPI.message_pattern.findall(message)[0]
+        for i in range(len(at_user_ids)):
+            at_user_ids[i] = "@" + (await QQGuildAPI.GetGuildMemberProfile(guild_id, bot, at_user_ids[i]))['nickname']
+        at_user_ids.append(message)
+        # 消息拼接
+        message = ' '.join(at_user_ids)
+        # 附件url拼接
+        appendix_urls = ' '.join(list(map(lambda x: x.replace("&amp;", '&'), appendix_urls)))
+        return message, appendix_urls
 
 
 def RandomArgb() -> ARGB:
