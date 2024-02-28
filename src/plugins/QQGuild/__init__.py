@@ -1,20 +1,28 @@
-from nonebot import on_command
+from nonebot import on_command, on_message
 from nonebot.adapters.onebot.v11 import (
     Bot as QQBot,
     MessageEvent as QQMessageEvent,
     MessageSegment as QQMessageSegment
 )
+from .data_source import dbclient
 from nonebot.adapters import Message
 from nonebot.params import CommandArg
 from nonebot_plugin_guild_patch import GuildMessageEvent
 from typing import Union
 from .api import *
-
-recognize = on_command("申请认证", priority=11, block=True)
-quit = on_command("取消认证", priority=12, block=True)
+import datetime
 
 Bot = QQBot
 Event = Union[QQMessageEvent, GuildMessageEvent]
+
+
+# 规则
+async def isCheatChannel(event: GuildMessageEvent) -> bool:
+    return str(event.channel_id) == QQGuildAPI.CheaterReportChannelID
+
+recognize = on_command("申请认证", priority=11, block=True)
+quit = on_command("取消认证", priority=12, block=True)
+cheaterRecord = on_message(rule=isCheatChannel, priority=17, block=True)
 
 
 @recognize.handle()
@@ -85,6 +93,26 @@ async def handle_quit(bot: Bot, event: Event, args: Message = CommandArg()):
             # 不在现有身份组中
             else:
                 await quit.finish(QQReplyMessage("该身份组不存在！", event))
+
+
+@cheaterRecord.handle()
+async def handle_cheater_report(bot: Bot, event: GuildMessageEvent):
+    guild_id = event.guild_id
+    user_id = event.user_id
+    user_profile = await QQGuildAPI.GetGuildMemberProfile(guild_id, bot, user_id)
+    nickname, avatar_url = user_profile['nickname'], user_profile['avatar_url']
+    send_time, message = event.time, str(event.message)
+    message, appendix_urls = await QQGuildAPI.GetMessageInfo(guild_id, bot, message)
+    # 时间戳转换为具体时间
+    dt_object = datetime.datetime.fromtimestamp(send_time)
+    formatted_time = dt_object.strftime('%Y-%m-%d %H:%M:%S')
+    # 存消息
+    dbclient.addInfo(nickname=nickname,
+                     avatar_url=avatar_url,
+                     message=message,
+                     appendix=appendix_urls,
+                     send_time=formatted_time)
+    await cheaterRecord.finish()
 
 
 def QQReplyMessage(message: Union[str, QQMessageSegment], event: Event):
