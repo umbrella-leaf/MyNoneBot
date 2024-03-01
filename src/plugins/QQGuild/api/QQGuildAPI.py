@@ -2,6 +2,7 @@ from nonebot.adapters import Bot
 from typing import Optional, Dict, Tuple
 from random import randint
 import re
+import httpx
 
 
 class QQGuildRoleInfo:
@@ -51,8 +52,10 @@ class QQGuildAPI:
     CheaterReportChannelID = '1473004'
     MaximumRoleNum = 37
     qqno_pattern = re.compile(r'\[CQ:at,qq=(.*?)]')
-    url_pattern = re.compile(r'\[CQ:(?:image|video).*?url=(.*?)]')
-    message_pattern = re.compile(r'^(?:\[CQ:at.*?])*\s*(.*?)(?:\[CQ:(?:image|video).*?])*$')
+    image_pattern = re.compile(r'\[CQ:image,file=(.*?),.*?]')
+    video_pattern = re.compile(r'\[CQ:video,file=(.*?),.*?]')
+    video_urls_pattern = re.compile(r'\[CQ:video.*?url=(.*?)]')
+    resource_path = "https://report.umbrella-leaf.com"
 
     @staticmethod
     async def GetGuildChannelList(guild_id: int, bot: Bot):
@@ -129,16 +132,40 @@ class QQGuildAPI:
     async def GetMessageInfo(guild_id: int, bot: Bot, message: str) -> Tuple[str, str]:
         # 正则取信息，重新拼接
         at_user_ids = QQGuildAPI.qqno_pattern.findall(message)
-        appendix_urls = QQGuildAPI.url_pattern.findall(message)
-        message = QQGuildAPI.message_pattern.findall(message)[0]
+        images = QQGuildAPI.image_pattern.findall(message)
+        videos = QQGuildAPI.video_pattern.findall(message)
+        appendix_urls = images + videos
+        video_urls = QQGuildAPI.video_urls_pattern.findall(message)
+        list(map(QQGuildAPI.acquireVideoResource, zip(videos, video_urls)))
+        message = re.sub(QQGuildAPI.qqno_pattern, "", re.sub(QQGuildAPI.image_pattern, "", re.sub(QQGuildAPI.video_pattern, "", message)))
         for i in range(len(at_user_ids)):
             at_user_ids[i] = "@" + (await QQGuildAPI.GetGuildMemberProfile(guild_id, bot, at_user_ids[i]))['nickname']
         at_user_ids.append(message)
         # 消息拼接
         message = ' '.join(at_user_ids)
         # 附件url拼接
-        appendix_urls = ' '.join(list(map(lambda x: x.replace("&amp;", '&'), appendix_urls)))
+        appendix_urls = ' '.join(list(map(QQGuildAPI.replaceResourceUrl, appendix_urls)))
         return message, appendix_urls
+
+    @staticmethod
+    def replaceResourceUrl(path: str) -> str:
+        path = path.replace("&amp;", "&")
+        if path.endswith("image"):
+            path = f"{QQGuildAPI.resource_path}/images/{path}"
+        else:
+            path = f"{QQGuildAPI.resource_path}/videos/{path}"
+        return path
+
+    @staticmethod
+    def acquireVideoResource(video_tuple):
+        video_name = video_tuple[0]
+        video_url = video_tuple[1]
+        video_url = video_url.replace("&amp;", "&")
+        client = httpx.Client()
+        response = client.get(video_url)
+        with open(f"resources/videos/{video_name}", "wb") as fw:
+            fw.write(response.content)
+        client.close()
 
 
 def RandomArgb() -> ARGB:
