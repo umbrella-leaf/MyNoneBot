@@ -13,7 +13,7 @@ class MySQLClient:
                  pool_size: int = 8,
                  pool_recycle: int = 1800):
         pymysql.install_as_MySQLdb()
-        url = f"mysql://{user}:{password}@{host}/{dbname}?charset=utf8"
+        url = f"mysql://{user}:{password}@{host}/{dbname}?charset=utf8mb4"
         self.engine = create_engine(url, echo=echo,
                                     pool_size=pool_size,
                                     pool_recycle=pool_recycle)
