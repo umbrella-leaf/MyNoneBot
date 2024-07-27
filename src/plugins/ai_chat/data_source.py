@@ -39,5 +39,14 @@ ernieBot = ErnieBot(
     key_prefix=plugin_config.ernie_bot_redis_key_prefix,
     session_expire=plugin_config.ernie_bot_session_expire
 )
+doubaoBot = DouBaoBot(
+    api_key=plugin_config.doubao_bot_api_key,
+    model=plugin_config.doubao_model,
+    bot_id=plugin_config.doubao_bot_id,
+    redis_cli=redis_cli,
+    key_prefix=plugin_config.doubao_bot_redis_key_prefix,
+    session_expire=plugin_config.doubao_bot_session_expire
+)
 
+__all__ = ["chatBot", "txBot", "bingBot", "ernieBot", "doubaoBot", "plugin_config"]
 
