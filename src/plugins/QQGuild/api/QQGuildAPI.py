@@ -1,6 +1,8 @@
 from nonebot.adapters import Bot
-from typing import Optional, Dict
+from typing import Optional, Dict, Tuple
 from random import randint
+import re
+import httpx
 
 
 class QQGuildRoleInfo:
@@ -47,7 +49,11 @@ class QQGuildCreateRoleInfo:
 
 class QQGuildAPI:
     RecognizeChannelName = '身份🆔认证'
+    CheaterReportChannelID = '1473004'
     MaximumRoleNum = 37
+    qqno_pattern = re.compile(r'\[CQ:at,qq=(.*?)]')
+    resource_pattern = re.compile(r'\[CQ:(?:image|video),file=(.*?),url=(.*?)]')
+    resource_path = "https://report.umbrella-leaf.com"
 
     @staticmethod
     async def GetGuildChannelList(guild_id: int, bot: Bot):
@@ -109,16 +115,54 @@ class QQGuildAPI:
     
     @staticmethod
     async def GetGuildMemberProfile(guild_id: int, bot: Bot, user_id: int):
-        roles = (await bot.call_api("get_guild_member_profile", guild_id=guild_id, user_id=user_id))['roles']
-        return roles
+        profile = await bot.call_api("get_guild_member_profile", guild_id=guild_id, user_id=user_id)
+        return profile
     
     @staticmethod
     async def MemberInRole(guild_id: int, bot: Bot, user_id: int, role_id: int) -> bool:
-        roles = await QQGuildAPI.GetGuildMemberProfile(guild_id, bot, user_id)
+        roles = (await QQGuildAPI.GetGuildMemberProfile(guild_id, bot, user_id))['roles']
         for role in roles:
             if int(role['role_id']) == role_id:
                 return True
         return False
+
+    @staticmethod
+    async def GetMessageInfo(guild_id: int, bot: Bot, message: str) -> Tuple[str, str]:
+        # 正则取信息，重新拼接
+        at_user_ids = QQGuildAPI.qqno_pattern.findall(message)
+        resources = QQGuildAPI.resource_pattern.findall(message)
+        appendix_urls = list(map(QQGuildAPI.acquireResources, resources))
+        message = re.sub(QQGuildAPI.qqno_pattern, "", re.sub(QQGuildAPI.resource_pattern, "", message))
+        for i in range(len(at_user_ids)):
+            at_user_ids[i] = "@" + (await QQGuildAPI.GetGuildMemberProfile(guild_id, bot, at_user_ids[i]))['nickname']
+        at_user_ids.append(message)
+        # 消息拼接
+        message = ' '.join(at_user_ids)
+        # 附件url拼接
+        appendix_urls = ' '.join(appendix_urls)
+        return message, appendix_urls
+
+    @staticmethod
+    def replaceResourceUrl(path: str) -> str:
+        path = path.replace("&amp;", "&")
+        if path.endswith("image"):
+            path = f"{QQGuildAPI.resource_path}/images/{path}"
+        else:
+            path = f"{QQGuildAPI.resource_path}/videos/{path}"
+        return path
+
+    @staticmethod
+    def acquireResources(resource):
+        resource_name, resource_url = resource[0], resource[1].replace("&amp;", "&")
+        is_video = (resource_name[-5:] == "video")
+        save_path = f"videos/{resource_name}" if is_video else f"images/{resource_name}"
+        if is_video:
+            client = httpx.Client()
+            response = client.get(resource_url)
+            with open(f"resources/{save_path}", "wb") as fw:
+                fw.write(response.content)
+            client.close()
+        return f"{QQGuildAPI.resource_path}/{save_path}"
 
 
 def RandomArgb() -> ARGB:
