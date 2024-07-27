@@ -33,6 +33,13 @@ class Config(BaseModel, extra=Extra.ignore):
     ernie_bot_session_expire: int
     ernie_bot_redis_key_prefix: str
 
+    doubao_bot_nickname: str
+    doubao_bot_api_key: str
+    doubao_model: str
+    doubao_bot_id: str
+    doubao_bot_session_expire: int
+    doubao_bot_redis_key_prefix: str
+
     expr_dont_understand: list
 
 
