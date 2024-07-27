@@ -33,7 +33,7 @@ OpenAIAuth==0.3.2
 pondpond==1.2.1
 prompt-toolkit==3.0.38
 pycparser==2.21
-pydantic==1.10.6
+pydantic==1.10.0
 Pygments==2.14.0
 pygtrie==2.5.0
 PySocks==1.7.1
@@ -62,4 +62,5 @@ websockets==10.4
 yarg==0.1.9
 yarl==1.8.2
 PyExecJs==1.5.1
+DouBaoChat
 
