@@ -10,6 +10,7 @@ class Config(BaseModel, extra=Extra.ignore):
     sqlalchemy_echo: bool
     sqlalchemy_pool_size: int
     sqlalchemy_pool_recycle: int
+    guild_chat_command: str
 
 
 plugin_config = Config.parse_obj(get_driver().config)

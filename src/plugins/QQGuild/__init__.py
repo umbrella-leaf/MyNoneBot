@@ -1,28 +1,32 @@
-from nonebot import on_command, on_message
-from nonebot.adapters.onebot.v11 import (
-    Bot as QQBot,
-    MessageEvent as QQMessageEvent,
-    MessageSegment as QQMessageSegment
-)
-from .data_source import dbclient
+from nonebot import on_command, on_message, require
+from .data_source import dbclient, plugin_config
 from nonebot.adapters import Message
 from nonebot.params import CommandArg
-from nonebot_plugin_guild_patch import GuildMessageEvent
+from nonebot.adapters.qq import (
+    Bot as GuildBot,
+    GuildMessageEvent,
+    MessageSegment as GuildMessageSegment
+)
 from typing import Union
 from .api import *
-import datetime
 
-Bot = QQBot
-Event = Union[QQMessageEvent, GuildMessageEvent]
+Bot = Union[GuildBot]
+Event = Union[GuildMessageEvent]
+
+require("ai_chat")
+from src.plugins.ai_chat import doubaoBot, plugin_config as chat_config
 
 
 # 规则
 async def isCheatChannel(event: GuildMessageEvent) -> bool:
     return str(event.channel_id) == QQGuildAPI.CheaterReportChannelID
 
+
+chat_command = plugin_config.guild_chat_command
 recognize = on_command("申请认证", priority=11, block=True)
 quit = on_command("取消认证", priority=12, block=True)
 cheaterRecord = on_message(rule=isCheatChannel, priority=17, block=True)
+guild_chat = on_command(chat_command, priority=22, block=True)
 
 
 @recognize.handle()
@@ -32,7 +36,7 @@ async def handle_recognize(bot: Bot, event: Event, args: Message = CommandArg())
     else:
         guild_id = event.guild_id
         channel_id = event.channel_id
-        user_id = event.user_id
+        user_id = event.get_user_id()
         recognize_channel_id = await QQGuildAPI.GetCertainChannelId(guild_id, bot, name=QQGuildAPI.RecognizeChannelName)
         if str(channel_id) != recognize_channel_id:
             tip = "请到身份认证频道进行认证！"
@@ -46,7 +50,7 @@ async def handle_recognize(bot: Bot, event: Event, args: Message = CommandArg())
                 if target_identity.IsOverWhelm():
                     tip = "不好意思，该身份组已经满员啦！"
                 else:
-                    if not await QQGuildAPI.SetGuildMemberRole(guild_id, bot, int(target_identity.id), user_id):
+                    if not await QQGuildAPI.SetGuildMemberRole(guild_id, bot, target_identity.id, user_id):
                         tip = "该身份组不可加入！"
                     else:
                         tip = f"您成功加入身份组<{identity}>"
@@ -68,7 +72,7 @@ async def handle_quit(bot: Bot, event: Event, args: Message = CommandArg()):
     else:
         guild_id = event.guild_id
         channel_id = event.channel_id
-        user_id = event.user_id
+        user_id = event.get_user_id()
         recognize_channel_id = await QQGuildAPI.GetCertainChannelId(guild_id, bot, name=QQGuildAPI.RecognizeChannelName)
         if str(channel_id) != recognize_channel_id:
             await quit.finish(QQReplyMessage("请到身份认证频道取消认证！", event))
@@ -78,7 +82,7 @@ async def handle_quit(bot: Bot, event: Event, args: Message = CommandArg()):
             # 在现有身份组中
             if identity in identities:
                 target_identity = identities[identity]
-                role_id = int(target_identity.id)
+                role_id = target_identity.id
                 if not await QQGuildAPI.MemberInRole(guild_id, bot, user_id, role_id):
                     await quit.finish(QQReplyMessage("您不在该身份组中！", event))
                 else:
@@ -96,16 +100,17 @@ async def handle_quit(bot: Bot, event: Event, args: Message = CommandArg()):
 
 
 @cheaterRecord.handle()
-async def handle_cheater_report(bot: Bot, event: GuildMessageEvent):
+async def handle_cheater_report(bot: Bot, event: Event):
     guild_id = event.guild_id
-    user_id = event.user_id
-    user_profile = await QQGuildAPI.GetGuildMemberProfile(guild_id, bot, user_id)
-    nickname, avatar_url = user_profile['nickname'], user_profile['avatar_url']
-    send_time, message = event.time, str(event.message)
+    user_id = event.get_user_id()
+    user_profile = (await QQGuildAPI.GetGuildMemberProfile(guild_id, bot, user_id)).user
+    nickname, avatar_url = user_profile.username, user_profile.avatar
+    for attachment in event.attachments:
+        print(attachment.dict())
+    send_time, message = event.timestamp, str(event.get_message())
     message, appendix_urls = await QQGuildAPI.GetMessageInfo(guild_id, bot, message)
     # 时间戳转换为具体时间
-    dt_object = datetime.datetime.fromtimestamp(send_time)
-    formatted_time = dt_object.strftime('%Y-%m-%d %H:%M:%S')
+    formatted_time = send_time.strftime('%Y-%m-%d %H:%M:%S')
     # 存消息
     dbclient.addInfo(nickname=nickname,
                      avatar_url=avatar_url,
@@ -115,8 +120,16 @@ async def handle_cheater_report(bot: Bot, event: GuildMessageEvent):
     await cheaterRecord.finish()
 
 
-def QQReplyMessage(message: Union[str, QQMessageSegment], event: Event):
-    if isinstance(event, GuildMessageEvent):
-        return QQMessageSegment.at(user_id=event.user_id) + message
+@guild_chat.handle()
+async def handle_guild_chat(bot: Bot, event: Event):
+    prompt = str(event.get_message()).strip().split(chat_command)[1].strip()
+    reply = await doubaoBot.chat(event, prompt)
+    if reply:
+        await guild_chat.finish(QQReplyMessage(reply, event))
     else:
-        return QQMessageSegment.reply(id_=event.message_id) + message
+        fallback = chat_config.expr_dont_understand[randint(0, 3)]
+        await guild_chat.finish(QQReplyMessage(fallback, event))
+
+
+def QQReplyMessage(message: Union[str, GuildMessageSegment], event: Event):
+    return GuildMessageSegment.reference(reference=event.id) + message
