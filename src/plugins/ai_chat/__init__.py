@@ -9,15 +9,14 @@ from nonebot.adapters.onebot.v11 import (
 )
 from nonebot.adapters import Message
 from nonebot.params import CommandArg
-from nonebot_plugin_guild_patch import GuildMessageEvent
 from .data_source import *
 from typing import Union
 
 ai_chat = on_regex(pattern=".*?", priority=50, block=False, rule=to_me())
 chat_reset = on_command("reset", priority=10, aliases={"重置", "重置对话", }, block=True, rule=to_me())
 
-Bot = QQBot
-Event = Union[QQMessageEvent, GuildMessageEvent]
+Bot = Union[QQBot]
+Event = Union[QQMessageEvent]
 
 
 @ai_chat.handle()
@@ -56,7 +55,4 @@ async def chat_reset_handler(bot: Bot, event: Event,
 
 
 def QQReplyMessage(message: Union[str, QQMessageSegment], event: Event):
-    if isinstance(event, GuildMessageEvent):
-        return QQMessageSegment.at(user_id=event.user_id) + message
-    else:
-        return QQMessageSegment.reply(id_=event.message_id) + message
+    return QQMessageSegment.reply(id_=event.message_id) + message
