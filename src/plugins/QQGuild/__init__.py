@@ -102,13 +102,10 @@ async def handle_quit(bot: Bot, event: Event, args: Message = CommandArg()):
 @cheaterRecord.handle()
 async def handle_cheater_report(bot: Bot, event: Event):
     guild_id = event.guild_id
-    user_id = event.get_user_id()
-    user_profile = (await QQGuildAPI.GetGuildMemberProfile(guild_id, bot, user_id)).user
-    nickname, avatar_url = user_profile.username, user_profile.avatar
-    for attachment in event.attachments:
-        print(attachment.dict())
-    send_time, message = event.timestamp, str(event.get_message())
-    message, appendix_urls = await QQGuildAPI.GetMessageInfo(guild_id, bot, message)
+    user = event.author
+    nickname, avatar_url = user.username, user.avatar
+    send_time = event.timestamp
+    message, appendix_urls = await QQGuildAPI.GetMessageInfo(guild_id, bot, event)
     # 时间戳转换为具体时间
     formatted_time = send_time.strftime('%Y-%m-%d %H:%M:%S')
     # 存消息

@@ -1,4 +1,7 @@
-from nonebot.adapters import Bot
+import os.path
+
+from nonebot.adapters.qq import Bot
+from nonebot.adapters.qq.event import GuildMessageEvent
 from nonebot.adapters.qq.models import (
     Role,
     User,
@@ -10,6 +13,7 @@ from nonebot.adapters.qq.models import (
 from typing import Optional, Dict, Tuple, List
 from random import randint
 import re
+import uuid
 import httpx
 
 
@@ -42,12 +46,10 @@ class ARGB:
 
 
 class QQGuildAPI:
-    # RecognizeChannelName = '身份🆔认证'
-    RecognizeChannelName = '队友招募'
+    RecognizeChannelName = '身份🆔认证'
     CheaterReportChannelID = '294887937'
+    # CheaterReportChannelID = '1473004'
     MaximumRoleNum = 37
-    qqno_pattern = re.compile(r'\[CQ:at,qq=(.*?)]')
-    resource_pattern = re.compile(r'\[CQ:(?:image|video),file=(.*?),url=(.*?)]')
     resource_path = "https://report.umbrella-leaf.com"
 
     @staticmethod
@@ -122,18 +124,17 @@ class QQGuildAPI:
         return False
 
     @staticmethod
-    async def GetMessageInfo(guild_id: str, bot: Bot, message: str) -> Tuple[str, str]:
+    async def GetMessageInfo(guild_id: str, bot: Bot, message: GuildMessageEvent) -> Tuple[str, str]:
         # 正则取信息，重新拼接
-        print(message)
-        at_user_ids = QQGuildAPI.qqno_pattern.findall(message)
-        resources = QQGuildAPI.resource_pattern.findall(message)
-        appendix_urls = list(map(QQGuildAPI.acquireResources, resources))
-        message = re.sub(QQGuildAPI.qqno_pattern, "", re.sub(QQGuildAPI.resource_pattern, "", message))
-        for i in range(len(at_user_ids)):
-            at_user_ids[i] = "@" + (await QQGuildAPI.GetGuildMemberProfile(guild_id, bot, at_user_ids[i])).user.username
-        at_user_ids.append(message)
+        bot_id = bot.self_info.id
+        mentions = [f"@{mention.username}" for mention in message.mentions if mention.id != bot_id] if message.mentions else []
+        attachments = [attachment.url for attachment in message.attachments] if message.attachments else []
+        appendix_urls = list(map(QQGuildAPI.acquireResources, attachments))
+        message = str(message.get_message().get("text"))
+
         # 消息拼接
-        message = ' '.join(at_user_ids)
+        mentions.append(message)
+        message = ' '.join(mentions)
         # 附件url拼接
         appendix_urls = ' '.join(appendix_urls)
         return message, appendix_urls
@@ -148,16 +149,17 @@ class QQGuildAPI:
         return path
 
     @staticmethod
-    def acquireResources(resource):
-        resource_name, resource_url = resource[0], resource[1].replace("&amp;", "&")
+    def acquireResources(resource: str):
+        resource_name, resource_url = str(uuid.uuid4()), resource.replace("&amp;", "&")
         is_video = (resource_name[-5:] == "video")
-        save_path = f"videos/{resource_name}" if is_video else f"images/{resource_name}"
-        if is_video:
-            client = httpx.Client()
+        for folder in ["videos", "images"]:
+            os.makedirs(f"resources/{folder}", exist_ok=True)
+
+        save_path = f"videos/{resource_name}.mp4" if is_video else f"images/{resource_name}.png"
+        with httpx.Client() as client:
             response = client.get(resource_url)
             with open(f"resources/{save_path}", "wb") as fw:
                 fw.write(response.content)
-            client.close()
         return f"{QQGuildAPI.resource_path}/{save_path}"
 
 
