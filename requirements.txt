@@ -16,4 +16,5 @@ pymysql==1.1.0
 revWenXin
 DouBaoChat
 PyExecJs==1.5.1
-
+cryptography
+nonebot_plugin_guild_patch
