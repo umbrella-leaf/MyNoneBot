@@ -30,7 +30,7 @@ async def acquire_resources(name: str, url: str):
     resource_type = "image" if resource_suffix in image_suffix else "video"
     resource_name += f".{resource_type}"
     for folder in resource_types:
-        os.makedirs(f"resources/{folder}", exist_ok=True)
+        os.makedirs(f"resources/{folder}s", exist_ok=True)
 
     save_path = f"{resource_type}s/{resource_name}"
     async with httpx.AsyncClient() as client:
