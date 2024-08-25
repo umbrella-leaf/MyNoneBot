@@ -1,17 +1,18 @@
-from nonebot import on_message, on
+from nonebot import on
 from nonebot.adapters.onebot.v11 import (
     Bot as QQBot,
     GroupMessageEvent,
-    GroupUploadNoticeEvent,
-    MessageSegment
+    GroupUploadNoticeEvent
 )
 from typing import Union
-from .utils.common import upload_report
+
+from .common import upload_report
+from .config import plugin_config
 
 Bot = Union[QQBot]
 Event = Union[GroupMessageEvent, GroupUploadNoticeEvent]
 
-cheaterReportGroupId = ['645832801']
+cheaterReportGroupId = plugin_config.listen_group_numbers
 
 
 async def is_cheater_record_group(event: Event) -> bool:

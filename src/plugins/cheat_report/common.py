@@ -1,23 +1,16 @@
-import os
 import re
 import datetime
-import httpx
 from uuid import uuid4
 from typing import Dict, Any, Union
 from nonebot import require
 from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, GroupUploadNoticeEvent
+from .data_source import file_saver
 
 
 Event = Union[GroupMessageEvent, GroupUploadNoticeEvent]
 
 require("QQGuild")
 from src.plugins.QQGuild import dbclient
-
-resource_path = "https://report.umbrella-leaf.com"
-temp_group_file_path = "/root/.config/QQ/NapCat/temp"
-image_suffix = ["jpg", "png"]
-video_suffix = ["mp4"]
-resource_types = ["video", "image"]
 
 
 async def get_member_user_info(event: Event, bot: Bot) -> Dict[str, Any]:
@@ -28,21 +21,6 @@ async def get_member_user_info(event: Event, bot: Bot) -> Dict[str, Any]:
                                                 no_cache=False)
     user_info["avatar_url"] = f"http://q1.qlogo.cn/g?b=qq&nk={user_id}&s=640"
     return user_info
-
-
-async def acquire_resources(name: str, url: str):
-    resource_name, resource_suffix = name.split(".")
-    resource_type = "image" if resource_suffix in image_suffix else "video"
-    resource_name += f".{resource_type}"
-    for folder in resource_types:
-        os.makedirs(f"resources/{folder}s", exist_ok=True)
-
-    save_path = f"{resource_type}s/{resource_name}"
-    async with httpx.AsyncClient(verify=False) as client:
-        response = await client.get(url)
-        with open(f"resources/{save_path}", "wb") as fw:
-            fw.write(response.content)
-    return f"{resource_path}/{save_path}"
 
 
 async def extract_appendices(event: Event, bot: Bot):
@@ -59,18 +37,18 @@ async def extract_appendices(event: Event, bot: Bot):
                                                                no_cache=False)
                 mention_username = mention_info["nickname"]
                 mentions.append(f"@{mention_username}")
-            elif segment.type in resource_types:
+            elif segment.type in file_saver.resource_types:
                 resource_url = segment.data["url"]
                 resource_name = segment.data.get("filename", None)
                 if resource_name is None:
                     resource_name = f"{uuid4().hex}.mp4"
-                resource_url = await acquire_resources(resource_name, resource_url)
+                resource_url = await file_saver.save_file(resource_name, resource_url)
                 appendices.append(resource_url)
             elif segment.type == 'face':
                 message += str(segment)
             elif segment.type == "text":
                 text = segment.data["text"]
-                if re.match(r'^\[.*?]$', text):
+                if re.match(r'^\[.*?]$', text) or str(text).startswith("/"):
                     continue
                 message += segment.data["text"]
     else:
@@ -79,7 +57,7 @@ async def extract_appendices(event: Event, bot: Bot):
         resource_name = event.file.name
         busid = event.file.busid
         resource_url = (await bot.get_group_file_url(group_id=group_id, file_id=file_id, busid=busid))["url"]
-        resource_url = await acquire_resources(resource_name, resource_url)
+        resource_url = await file_saver.save_file(resource_name, resource_url)
         appendices.append(resource_url)
     message = " ".join(mentions) + message
     appendix_urls = " ".join(appendices)
@@ -101,3 +79,4 @@ async def upload_report(event: Event, bot: Bot):
         appendix=appendix_urls,
         send_time=formatted_time
     )
+
