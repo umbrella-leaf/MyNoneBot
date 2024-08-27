@@ -141,4 +141,7 @@ dmypy.json
 # pycharm
 .idea
 
+#resource
+resources/
+
 # End of https://www.toptal.com/developers/gitignore/api/python
