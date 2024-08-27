@@ -4,8 +4,8 @@ typing_extensions==4.5.0
 pydantic==1.10.6
 BingImageCreator==0.4.4
 EdgeGPT==0.10.16
-nonebot-adapter-onebot==2.2.2
-nonebot-adapter-qq==1.4.4
+nonebot-adapter-onebot
+nonebot-adapter-qq
 nonebot2==2.2.1
 pondpond==1.2.1
 redis==4.5.2
