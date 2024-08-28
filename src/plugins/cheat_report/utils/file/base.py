@@ -16,7 +16,13 @@ class FileSaver:
         self.type = type
         self.resource_type_suffices = {
             "image": ["jpg", "jpeg", "png", "gif"],
-            "video": ["mp4"]
+            "video": ["mp4"],
+            "reply": ["json"]
+        }
+        self.resource_type_to_file_suffix = {
+            "image": "image",
+            "video": "video",
+            "reply": "json"
         }
         self.resource_types = list(self.resource_type_suffices.keys())
         self.resource_suffix_to_type = {suffix: resource_type for resource_type, suffixes in
@@ -25,16 +31,20 @@ class FileSaver:
     def get_file_save_path(self, name: str) -> str:
         resource_name, resource_suffix = name.split(".")
         resource_type = self.resource_suffix_to_type.get(resource_suffix)
-        resource_name += f".{resource_type}"
+        file_suffix = self.resource_type_to_file_suffix.get(resource_type)
+        resource_name += f".{file_suffix}"
 
         save_path = f"{resource_type}s/{resource_name}"
         return save_path
 
     async def save_file(self, name: str, url: str) -> str:
-        async with httpx.AsyncClient(verify=False) as client:
-            response = await client.get(url)
+        content = url.encode("utf-8")
+        if url.startswith("http"):
+            async with httpx.AsyncClient(verify=False) as client:
+                response = await client.get(url)
+            content = response.content
         save_path = self.get_file_save_path(name)
-        await self._save_file(content=response.content,
+        await self._save_file(content=content,
                               save_path=save_path)
         return f"{self.resource_root_url}/{save_path}"
 
