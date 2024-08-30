@@ -39,6 +39,7 @@ async def recursive_handle_reply(event: Event, bot: Bot) -> str:
         reply = event.reply
         if reply is None:
             return ""
+        first_reply_id = reply.message_id
         reply_chains = {}
         while reply is not None:
             message_id = reply.message_id
@@ -50,16 +51,18 @@ async def recursive_handle_reply(event: Event, bot: Bot) -> str:
                 Reply, await bot.get_msg(message_id=reply_id)
             )
             reply_chains[message_id]["reply_id"] = reply.message_id
-        reply_file_name = f"{event.message_id}.json"
+        reply_chains["reply_id"] = first_reply_id
+        reply_file_name = f"{event.message_id}.reply"
         reply_content = json.dumps(reply_chains, indent=4)
         return await file_saver.save_file(reply_file_name, reply_content)
     return ""
 
 
-async def save_message_to_redis(event: Event, segments: List[str], nickname: str, formatted_time: str):
+async def save_message_to_redis(event: Event, segments: List[str], nickname: str, avatar_url: str, formatted_time: str):
     user_id = event.user_id
     message_id = event.message_id if hasattr(event, "message_id") else int(redis_cli.get(user_id).decode("utf-8"))
     redis_cli.hset(message_id, "nickname", nickname)
+    redis_cli.hset(message_id, "avatar_url", avatar_url)
     redis_cli.hset(message_id, "send_time", formatted_time)
     redis_cli.hset(message_id, "segments", str(segments))
     redis_cli.expire(message_id, 86400)
@@ -122,7 +125,7 @@ async def upload_report(event: Event, bot: Bot):
     appendix_urls = " ".join(appendices)
     # 时间戳转换为具体时间
     formatted_time = datetime.datetime.fromtimestamp(send_time).strftime('%Y-%m-%d %H:%M:%S')
-    await save_message_to_redis(event, segments, nickname, formatted_time)
+    await save_message_to_redis(event, segments, nickname, avatar_url, formatted_time,)
     dbclient.addInfo(
         nickname=nickname,
         avatar_url=avatar_url,

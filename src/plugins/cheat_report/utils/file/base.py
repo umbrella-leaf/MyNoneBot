@@ -17,12 +17,7 @@ class FileSaver:
         self.resource_type_suffices = {
             "image": ["jpg", "jpeg", "png", "gif"],
             "video": ["mp4"],
-            "reply": ["json"]
-        }
-        self.resource_type_to_file_suffix = {
-            "image": "image",
-            "video": "video",
-            "reply": "json"
+            "reply": ["reply"]
         }
         self.resource_types = list(self.resource_type_suffices.keys())
         self.resource_suffix_to_type = {suffix: resource_type for resource_type, suffixes in
@@ -31,8 +26,7 @@ class FileSaver:
     def get_file_save_path(self, name: str) -> str:
         resource_name, resource_suffix = name.split(".")
         resource_type = self.resource_suffix_to_type.get(resource_suffix)
-        file_suffix = self.resource_type_to_file_suffix.get(resource_type)
-        resource_name += f".{file_suffix}"
+        resource_name += f".{resource_type}"
 
         save_path = f"{resource_type}s/{resource_name}"
         return save_path
