@@ -17,7 +17,8 @@ class FileSaver:
         self.resource_type_suffices = {
             "image": ["jpg", "jpeg", "png", "gif"],
             "video": ["mp4"],
-            "reply": ["reply"]
+            "reply": ["reply"],
+            "forward": ["forward"]
         }
         self.resource_types = list(self.resource_type_suffices.keys())
         self.resource_suffix_to_type = {suffix: resource_type for resource_type, suffixes in

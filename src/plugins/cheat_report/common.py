@@ -1,14 +1,24 @@
-import json
-import re
 import datetime
-from uuid import uuid4
+import json
 from typing import Dict, Any, Union, List
-from nonebot import require
-from nonebot.compat import type_validate_python
-from nonebot.adapters.onebot.v11.event import Reply
-from nonebot.adapters.onebot.v11 import Bot, GroupMessageEvent, GroupUploadNoticeEvent
-from .data_source import file_saver
 
+from nonebot import require
+from nonebot.adapters.onebot.v11 import (
+    Bot,
+    GroupMessageEvent,
+    GroupUploadNoticeEvent)
+from nonebot.adapters.onebot.v11.event import Reply
+from nonebot.compat import type_validate_python
+
+from .data_source import file_saver
+from .utils.handle import (
+    handle_at,
+    handle_multimedia,
+    handle_face,
+    handle_text,
+    handle_forward,
+    handle_group_file
+)
 
 Event = Union[GroupMessageEvent, GroupUploadNoticeEvent]
 
@@ -82,33 +92,27 @@ async def extract_appendices(event: Event, bot: Bot):
         raw_message = event.get_message()
         for segment in raw_message:
             if segment.type == "at":
-                mention_username = segment.data["name"]
+                mention_username = await handle_at(segment)
                 append_element_to_lists(mention_username, mentions, segments)
-            elif segment.type in file_saver.resource_types:
-                resource_url = segment.data["url"]
-                resource_name = segment.data.get("filename", None)
-                if resource_name is None:
-                    resource_name = f"{uuid4().hex}.mp4"
-                resource_url = await file_saver.save_file(resource_name, resource_url)
+            elif segment.type == 'image' or segment.type == 'video':
+                resource_url = await handle_multimedia(segment)
                 append_element_to_lists(resource_url, appendices, segments)
             elif segment.type == 'face':
-                message += str(segment)
-                segments.append(str(segment))
+                face = await handle_face(segment)
+                message += face
+                segments.append(face)
             elif segment.type == "text":
-                text = segment.data["text"]
-                if re.match(r'^\[.*?]$', text) or str(text).startswith("/"):
+                text = await handle_text(segment)
+                if text is None:
                     continue
-                message += segment.data["text"]
-                segments.append(segment.data["text"])
+                message += text
+                segments.append(text)
+            elif segment.type == 'forward':
+                resource_url = await handle_forward(segment, bot, event)
+                append_element_to_lists(resource_url, appendices, segments)
     else:
-        group_id = event.group_id
-        file_id = event.file.id
-        resource_name = event.file.name
-        busid = event.file.busid
-        resource_url = (await bot.get_group_file_url(group_id=group_id, file_id=file_id, busid=busid))["url"]
-        resource_url = await file_saver.save_file(resource_name, resource_url)
-        appendices.append(resource_url)
-        segments.append(resource_url)
+        resource_url = await handle_group_file(bot, event)
+        append_element_to_lists(resource_url, appendices, segments)
     message = " ".join(mentions) + message
     return message, appendices, segments
 
