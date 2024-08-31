@@ -30,9 +30,13 @@ async def handle_face(segment: MessageSegment):
     return str(segment)
 
 
+emoji_text_reg = re.compile(r'\[.*?]')
+
+
 async def handle_text(segment: MessageSegment):
     text = segment.data["text"]
-    if re.match(r'^\[.*?]$', text) or str(text).startswith("/"):
+    text = re.sub(emoji_text_reg, '', text)
+    if text == "" or str(text).startswith("/"):
         return None
     return text
 
