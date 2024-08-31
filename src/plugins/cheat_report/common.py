@@ -34,7 +34,7 @@ async def get_member_user_info(event: Event, bot: Bot) -> Dict[str, Any]:
     user_info = await bot.get_group_member_info(group_id=group_id,
                                                 user_id=user_id,
                                                 no_cache=False)
-    user_info["avatar_url"] = f"http://q1.qlogo.cn/g?b=qq&nk={user_id}&s=640"
+    user_info["avatar_url"] = f"https://q1.qlogo.cn/g?b=qq&nk={user_id}&s=640"
     return user_info
 
 

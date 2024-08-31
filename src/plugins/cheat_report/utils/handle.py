@@ -48,7 +48,7 @@ class ForwardMessage(BaseModel):
 
     async def serialize(self) -> Dict[str, Any]:
         message = {
-            "avatar_url": f"http://q1.qlogo.cn/g?b=qq&nk={self.user_id}&s=640",
+            "avatar_url": f"https://q1.qlogo.cn/g?b=qq&nk={self.user_id}&s=640",
             "nickname": self.nickname,
             "segments": []
         }
