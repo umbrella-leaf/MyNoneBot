@@ -119,7 +119,7 @@ async def extract_appendices(event: Event, bot: Bot):
 
 async def upload_report(event: Event, bot: Bot):
     user_info = await get_member_user_info(event, bot)
-    nickname = user_info["card"] if "card" in user_info else user_info["nickname"]
+    nickname = user_info["card"] if (user_info.get("card", None) is not None) else user_info["nickname"]
     avatar_url = user_info["avatar_url"]
     send_time = event.time
     reply_file_url = await recursive_handle_reply(event, bot)
