@@ -126,7 +126,7 @@ async def upload_report(event: Event, bot: Bot):
     message, appendices, segments = await extract_appendices(event, bot)
     if reply_file_url != "":
         appendices.append(reply_file_url)
-    appendix_urls = " ".join(appendices)
+    appendix_urls = "\n".join(appendices)
     # 时间戳转换为具体时间
     formatted_time = datetime.datetime.fromtimestamp(send_time).strftime('%Y-%m-%d %H:%M:%S')
     await save_message_to_redis(event, segments, nickname, avatar_url, formatted_time,)
