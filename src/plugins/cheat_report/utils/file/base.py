@@ -45,7 +45,7 @@ class FileSaver:
                 response = await client.get(url)
             content = response.content
         if name.endswith(".txt"):
-            content = content.decode("utf-8").encode("ansi")
+            content = content.decode("utf-8").encode("gb2312")
         save_path = self.get_file_save_path(name)
         await self._save_file(content=content,
                               save_path=save_path)
