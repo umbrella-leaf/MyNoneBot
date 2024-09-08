@@ -1,5 +1,6 @@
 import httpx
 from enum import Enum
+from pathlib import Path
 
 
 class FileSaverType(Enum):
@@ -18,16 +19,21 @@ class FileSaver:
             "image": ["jpg", "jpeg", "png", "gif"],
             "video": ["mp4"],
             "reply": ["reply"],
-            "forward": ["forward"]
+            "forward": ["forward"],
+            "document": ["doc", "docx", "ppt", "pptx", "xls", "xlsx", "pdf", "txt"],
         }
         self.resource_types = list(self.resource_type_suffices.keys())
         self.resource_suffix_to_type = {suffix: resource_type for resource_type, suffixes in
                                         self.resource_type_suffices.items() for suffix in suffixes}
 
     def get_file_save_path(self, name: str) -> str:
-        resource_name, resource_suffix = name.split(".")
+        file_path = Path(name)
+        resource_name, resource_suffix = file_path.stem, file_path.suffix[1:].lower()
         resource_type = self.resource_suffix_to_type.get(resource_suffix)
-        resource_name += f".{resource_type}"
+        if resource_type != "document":
+            resource_name += f".{resource_type}"
+        else:
+            resource_name = name
 
         save_path = f"{resource_type}s/{resource_name}"
         return save_path
@@ -38,6 +44,8 @@ class FileSaver:
             async with httpx.AsyncClient(verify=False) as client:
                 response = await client.get(url)
             content = response.content
+        if name.endswith(".txt"):
+            content = content.decode("utf-8").encode("ansi")
         save_path = self.get_file_save_path(name)
         await self._save_file(content=content,
                               save_path=save_path)
