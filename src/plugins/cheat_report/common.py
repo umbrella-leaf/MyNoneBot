@@ -56,7 +56,7 @@ async def recursive_handle_reply(event: Event, bot: Bot) -> str:
             reply_chains[message_id] = await get_reply_details(message_id)
             if reply.message.count("reply") <= 0:
                 break
-            reply_id = int(reply.message[0].data['id'])
+            reply_id = int(reply.message["reply", 0].data['id'])
             reply = type_validate_python(
                 Reply, await bot.get_msg(message_id=reply_id)
             )
