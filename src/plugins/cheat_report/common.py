@@ -94,7 +94,7 @@ async def extract_appendices(event: Event, bot: Bot):
             if segment.type == "at":
                 mention_username = await handle_at(segment)
                 append_element_to_lists(mention_username, mentions, segments)
-            elif segment.type == 'image' or segment.type == 'video':
+            elif segment.type == 'image' or segment.type == 'video' or segment.type == 'mface':
                 resource_url = await handle_multimedia(segment)
                 append_element_to_lists(resource_url, appendices, segments)
             elif segment.type == 'face':

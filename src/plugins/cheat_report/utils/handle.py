@@ -21,7 +21,11 @@ async def handle_multimedia(segment: MessageSegment):
     resource_url = segment.data["url"]
     resource_name = segment.data.get("filename", None)
     if resource_name is None:
-        resource_name = f"{uuid4().hex}.mp4"
+        resource_name = segment.data.get("emoji_id", None)
+        if resource_name is None:
+            resource_name = f"{uuid4().hex}.mp4"
+        else:
+            resource_name = f"{resource_name}.gif"
     resource_url = await file_saver.save_file(resource_name, resource_url)
     return resource_url
 
