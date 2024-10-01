@@ -75,7 +75,7 @@ async def save_message_to_redis(event: Event, segments: List[str], nickname: str
     redis_cli.hset(message_id, "avatar_url", avatar_url)
     redis_cli.hset(message_id, "send_time", formatted_time)
     redis_cli.hset(message_id, "segments", str(segments))
-    redis_cli.expire(message_id, 86400)
+    redis_cli.expire(message_id, 60 * 60 * 24 * 7)
 
 
 def append_element_to_lists(element: Any, *lists: List[List]):
